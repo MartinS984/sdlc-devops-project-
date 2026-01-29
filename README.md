@@ -4,12 +4,31 @@ A complete "Zero to Hero" DevOps project demonstrating a full Software Developme
 
 ## 📋 Project Overview
 
-This project automates the deployment of a Node.js application using a modern DevOps stack. It covers:
-1.  **Development**: Local coding and containerization.
-2.  **Orchestration**: Running locally on Kubernetes (Minikube).
-3.  **CI (Continuous Integration)**: Jenkins pipeline to build and push Docker images.
-4.  **IaC (Infrastructure as Code)**: Terraform to provision AWS EC2 instances.
-5.  **CD (Configuration Management)**: Ansible to configure servers and deploy the application.
+This project automates the deployment of a Node.js application using a modern DevOps stack.
+
+### 🔄 Pipeline Phases (Architecture)
+
+```mermaid
+graph TD
+    subgraph Phase1[Phase 1: Development & Local Orchestration]
+        Dev[Dev: Node.js App] --> Docker[Dockerize App]
+        Docker --> Minikube[Deploy to Minikube]
+    end
+
+    subgraph Phase2[Phase 2: Continuous Integration]
+        Git[Push to GitHub] --> Jenkins[Jenkins Pipeline]
+        Jenkins --> Build[Build Image]
+        Build --> Push[Push to Docker Hub]
+    end
+
+    subgraph Phase3[Phase 3: Cloud Deployment]
+        TF[Terraform: Provision EC2] --> Ansible[Ansible: Configure Servers]
+        Ansible --> Deploy[Deploy Container & Nginx]
+    end
+
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+```
 
 ---
 
@@ -47,36 +66,51 @@ sdlc-devops-project/
 ├── jenkins-setup/        # Custom Jenkins Docker Image
 │   └── Dockerfile
 └── Jenkinsfile           # CI Pipeline Script
+```
 
-🚀 Phase 1: Development & Local Orchestration
-1. Build & Test Locally
+---
+
+## 🚀 Phase 1: Development & Local Orchestration
+
+**Goal:** Create the app, containerize it, and run it on a local Kubernetes cluster.
+
+### 1. Build & Test Locally
 The application is a simple Express server with a health check endpoint.
 
-Bash
+```bash
 cd app
 npm install
 node server.js
 # Access at http://localhost:3000
-2. Dockerization
+```
+
+### 2. Dockerization
 Build the container image locally.
 
-Bash
+```bash
 docker build -t <your-dockerhub-user>/devops-node-app:v1 .
 docker run -p 3000:3000 <your-dockerhub-user>/devops-node-app:v1
-3. Kubernetes (Minikube)
+```
+
+### 3. Kubernetes (Minikube)
 Deploy to a local Kubernetes cluster to simulate orchestration.
 
-Bash
+```bash
 minikube start
 kubectl apply -f k8s/
 minikube service node-app-service --url
-🔄 Phase 2: Continuous Integration (Jenkins)
-Automates the build and push process to Docker Hub.
+```
 
-1. Setup Jenkins
-Run Jenkins in a container with the Docker socket mounted ("Docker-out-of-Docker").
+---
 
-Bash
+## 🔄 Phase 2: Continuous Integration (Jenkins)
+
+**Goal:** Automate the build and push process to Docker Hub upon every code change.
+
+### 1. Setup Jenkins
+Run Jenkins in a container with the Docker socket mounted ("Docker-out-of-Docker") to allow it to run Docker commands.
+
+```bash
 docker run -d \
   -p 8080:8080 \
   -p 50000:50000 \
@@ -85,64 +119,69 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v jenkins_home:/var/jenkins_home \
   my-jenkins-docker:v1
-2. Pipeline Workflow (Jenkinsfile)
-Checkout: Pulls code from GitHub.
+```
 
-Build: Creates Docker image with a version tag (:v${BUILD_NUMBER}).
+### 2. Pipeline Workflow (`Jenkinsfile`)
+The pipeline runs the following stages automatically:
+1.  **Checkout**: Pulls the latest code from GitHub.
+2.  **Build**: Creates a Docker image with a version tag (`:v${BUILD_NUMBER}`).
+3.  **Login**: Authenticates with Docker Hub using Jenkins Credentials.
+4.  **Push**: Pushes the tagged image and `latest` tag to the registry.
+5.  **Cleanup**: Logs out to ensure security.
 
-Login: Authenticates with Docker Hub using Jenkins Credentials.
+---
 
-Push: Pushes the tagged image and latest tag to the registry.
+## ☁️ Phase 3: Cloud Deployment (Terraform & Ansible)
 
-Cleanup: Logs out.
+**Goal:** Provision AWS infrastructure and deploy the application using configuration management.
 
-☁️ Phase 3: Deployment (Terraform & Ansible)
-Provisions AWS infrastructure and deploys the application.
-
-1. Infrastructure Provisioning (Terraform)
+### 1. Infrastructure Provisioning (Terraform)
 Provisions 2 EC2 instances (Ubuntu) and a Security Group allowing SSH (22) and HTTP (80).
 
-Bash
+```bash
 cd terraform
 terraform init
 terraform plan
 terraform apply
-Output: Returns public IPs of the new servers.
+```
+*Output:* Returns the public IPs of the new servers (e.g., `54.x.x.x`, `13.x.x.x`).
 
-2. Configuration & Deployment (Ansible)
-Configures the raw EC2 instances.
+### 2. Configuration & Deployment (Ansible)
+Connects to the raw EC2 instances to turn them into web servers.
 
-Playbook Tasks:
+**Playbook Tasks:**
+* Updates `apt` cache.
+* Installs Docker & Nginx.
+* Starts Docker service.
+* Pulls the Node.js image from Docker Hub.
+* Runs the container on port 3000.
+* Configures Nginx as a Reverse Proxy (Port 80 -> 3000).
 
-Updates apt cache.
-
-Installs Docker & Nginx.
-
-Starts Docker service.
-
-Pulls the Node.js image from Docker Hub.
-
-Runs the container on port 3000.
-
-Configures Nginx as a Reverse Proxy (Port 80 -> 3000).
-
-Bash
+```bash
 cd ansible
-# Update inventory.ini with Terraform output IPs
+# Update inventory.ini with the IPs from Terraform output
 ansible-playbook -i inventory.ini playbook.yaml
-3. Verification
-Access the application via the AWS Public IPs:
-http://<EC2-PUBLIC-IP>
+```
 
-🧹 Tear Down
+### 3. Verification
+Access the live application via the AWS Public IPs:
+`http://<EC2-PUBLIC-IP>`
+
+---
+
+## 🧹 Tear Down
+
 To avoid AWS costs, destroy infrastructure when finished.
 
-Bash
+```bash
 cd terraform
 terraform destroy
-👤 Author
-Martin Stojkovski
+```
 
-GitHub: MartinS984
+## 👤 Author
 
-Created as part of the Complete SDLC DevOps Masterclass.
+**Martin Stojkovski**
+* GitHub: [MartinS984](https://github.com/MartinS984)
+
+---
+*Created as part of the Complete SDLC DevOps Masterclass.*
