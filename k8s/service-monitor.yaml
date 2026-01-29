@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-app-monitor
+  namespace: monitoring
+  labels:
+    release: my-monitoring  # Required to match your Prometheus installation
+spec:
+  selector:
+    matchLabels:
+      app: node-app    # Looks for Services with this label
+  namespaceSelector:
+    matchNames:
+      - default        # Looks in the 'default' namespace
+  endpoints:
+    - port: http       # Connects to the port named 'http' we just added
+      path: /metrics
+      interval: 15s

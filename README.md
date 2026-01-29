@@ -1,6 +1,6 @@
 # 🚀 SDLC DevOps Project: Complete Node.js Pipeline
 
-A complete "Zero to Hero" DevOps project demonstrating a full Software Development Life Cycle (SDLC) pipeline. This project moves a simple Node.js application from local development to a production-ready deployment on AWS using industry-standard tools.
+A complete "Zero to Hero" DevOps project demonstrating a full Software Development Life Cycle (SDLC) pipeline. This project moves a simple Node.js application from local development to a production-ready deployment on AWS using industry-standard tools, now including full observability.
 
 ## 📋 Project Overview
 
@@ -26,21 +26,29 @@ graph TD
         Ansible --> Deploy[Deploy Container & Nginx]
     end
 
+    subgraph Phase4[Phase 4: Monitoring & Observability]
+        Prometheus[Prometheus: Scrape Metrics] --> Grafana[Grafana: Visualize Data]
+        Minikube -.-> Prometheus
+    end
+
     Phase1 --> Phase2
     Phase2 --> Phase3
+    Phase1 --> Phase4
 ```
 
 ---
 
 ## 🛠️ Technology Stack
 
-* **Application**: Node.js (Express)
+* **Application**: Node.js (Express) + `prom-client`
 * **Version Control**: Git & GitHub
 * **Containerization**: Docker & Docker Hub
 * **Local Orchestration**: Minikube (Kubernetes)
 * **CI Pipeline**: Jenkins (running in Docker)
 * **Infrastructure as Code**: Terraform (AWS Provider)
 * **Configuration Management**: Ansible
+* **Monitoring**: Prometheus (Metrics) & Grafana (Dashboards)
+* **Package Management**: Helm
 * **Cloud Provider**: AWS (EC2, VPC, Security Groups)
 * **Operating System**: Ubuntu (WSL 2 on Windows 11)
 
@@ -51,12 +59,13 @@ graph TD
 ```bash
 sdlc-devops-project/
 ├── app/                  # Application Source Code
-│   ├── server.js         # Node.js entry point
+│   ├── server.js         # Node.js entry point (Instrumented)
 │   ├── package.json      # Dependencies
 │   └── Dockerfile        # Container definition
 ├── k8s/                  # Kubernetes Manifests (Local)
-│   ├── deployment.yaml
-│   └── service.yaml
+│   ├── deployment.yaml   # App Deployment
+│   ├── service.yaml      # App Service
+│   └── service-monitor.yaml # Prometheus Monitor Config
 ├── terraform/            # Infrastructure Provisioning
 │   ├── main.tf           # AWS Resources (EC2, SG, KeyPair)
 │   └── terraform.tfstate # State file (ignore in git)
@@ -166,6 +175,65 @@ ansible-playbook -i inventory.ini playbook.yaml
 ### 3. Verification
 Access the live application via the AWS Public IPs:
 `http://<EC2-PUBLIC-IP>`
+
+---
+
+## 📊 Phase 4: Monitoring & Observability (Prometheus & Grafana)
+
+**Goal:** Implement full-stack observability to visualize real-time application traffic and cluster health.
+
+### 1. Install Helm & Prometheus Stack
+Deploy the industry-standard monitoring stack (Prometheus, Grafana, Node Exporter) using Helm.
+
+```bash
+# Install Helm (if not installed)
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Add Prometheus Repo
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install Stack in 'monitoring' namespace
+kubectl create namespace monitoring
+helm install my-monitoring prometheus-community/kube-prometheus-stack -n monitoring
+```
+
+### 2. Instrument Application
+The Node.js app is updated with `prom-client` to expose custom metrics at `/metrics`.
+* **Metric:** `http_requests_total` (Counter)
+* **Scraping:** Configured via `ServiceMonitor` resource.
+
+```yaml
+# k8s/service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-app-monitor
+  labels:
+    release: my-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-app
+  endpoints:
+    - port: http
+      path: /metrics
+```
+
+### 3. Access Grafana Dashboards
+Port-forward Grafana to localhost to view the data.
+
+```bash
+# 1. Port Forward
+kubectl port-forward svc/my-monitoring-grafana 3000:80 -n monitoring
+
+# 2. Get Admin Password
+kubectl get secret --namespace monitoring my-monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+
+* **URL:** `http://localhost:3000`
+* **User:** `admin`
+* **Query:** `rate(http_requests_total[1m])` to see requests per second.
 
 ---
 
