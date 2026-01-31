@@ -6,6 +6,23 @@ A complete "Zero to Hero" DevOps project demonstrating a full Software Developme
 
 This project automates the deployment of a Node.js application using a modern DevOps stack.
 
+## 🚀 Quick Start (One-Click Setup)
+
+Get the entire environment (Minikube, Jenkins, ArgoCD, Grafana, Prometheus) running with a single command.
+
+1.  **Clone the repo:**
+    ```bash
+    git clone https://github.com/MartinS984/sdlc-devops-project.git
+    cd sdlc-devops-project
+    ```
+
+2.  **Run the Startup Script:**
+    This script initializes Minikube, starts containers, and automatically establishes all port-forwarding tunnels.
+    ```bash
+    chmod +x startup.sh
+    ./startup.sh
+    ```
+
 ### 🔄 Pipeline Phases (Architecture)
 
 ```mermaid
