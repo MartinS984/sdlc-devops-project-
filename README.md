@@ -16,11 +16,10 @@ Get the entire environment (Minikube, Jenkins, ArgoCD, Grafana, Prometheus) runn
     cd sdlc-devops-project
     ```
 
-2.  **Run the Startup Script:**
-    This script initializes Minikube, starts containers, and automatically establishes all port-forwarding tunnels.
+2.  **Start the Environment:**
+    Use the Makefile to bootstrap the cluster and open all tunnels.
     ```bash
-    chmod +x startup.sh
-    ./startup.sh
+    make up
     ```
 
 ### 🔄 Pipeline Phases (Architecture)
@@ -91,6 +90,8 @@ sdlc-devops-project/
 │   ├── deployment.yaml   # App Deployment
 │   ├── service.yaml      # App Service
 │   └── service-monitor.yaml # Prometheus Monitor Config
+├── scripts/              # Utility Scripts
+│   └── startup.sh        # Environment Bootstrap
 ├── terraform/            # Infrastructure Provisioning
 │   ├── main.tf           # AWS Resources (EC2, SG, KeyPair)
 │   └── terraform.tfstate # State file (ignore in git)
@@ -99,7 +100,8 @@ sdlc-devops-project/
 │   └── playbook.yaml     # Deployment tasks
 ├── jenkins-setup/        # Custom Jenkins Docker Image
 │   └── Dockerfile
-└── Jenkinsfile           # CI Pipeline Script
+├── Jenkinsfile           # CI Pipeline Script
+└── Makefile              # Command Shortcut
 ```
 
 ---
